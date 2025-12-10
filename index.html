@@ -420,21 +420,20 @@ document.getElementById('confirmPassword').addEventListener('click', function() 
       alert("You must enter the password before saving the receipt.");
       return;
     }
-    const { jsPDF } = window.jspdf;
-    const transactionId = 'SB' + Date.now().toString().slice(-8);
-    updateReceipt(transactionId);
     const doc = new jsPDF('p', 'pt', 'a4');
-    doc.html(document.getElementById('receipt'), {
-      callback: function(pdf) {
-        pdf.save(`SmoothBanking_${transactionId}.pdf`);
-      },
-      margin: [20,20,20,20],
-      autoPaging: 'text',
-      x: 0,
-      y: 0,
-      width: 400,
-      windowWidth: document.getElementById('receipt').scrollWidth
-    });
+doc.html(document.getElementById('receipt'), {
+  callback: function (pdf) {
+    pdf.save(`SmoothBanking_${transactionId}.pdf`);
+  },
+  margin: [20, 20, 20, 20],
+  html2canvas: {
+    scale: 2,  // higher scale = sharper, captures full content
+    useCORS: true,
+    windowWidth: 1200 // <— important for mobile
+  },
+});
+
+   
   }
 
   document.getElementById('savePdf').addEventListener('click', savePdfReceipt);
@@ -442,4 +441,5 @@ document.getElementById('confirmPassword').addEventListener('click', function() 
 </script>
 </body>
 </html>
+
 
