@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Smooth Banking — Receipt</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root{
+    --bg: #f3f6fb;
+    --card: #ffffff;
+    --muted: #6b7280;
+    --accent: #008000; /* Green */
+    --accent-2: #0b8457;
+    --line: #e6edf5;
+    --text: #0f1724;
+    --paper-width: 760px;
+    --receipt-padding: 28px;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  }
+
+  body{
+    margin: 0;
+    min-height: 100vh;
+    background: linear-gradient(180deg,var(--bg), #ffffff 60%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 28px;
+    color: var(--text);
+  }
+
+  .wrap {
+    width: 100%;
+    max-width: calc(var(--paper-width) + 220px);
+    display: flex;
+    gap: 32px;
+    align-items: flex-start;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .controls {
+    width: 260px;
+    min-width: 220px;
+    background: var(--card);
+    border-radius: 12px;
+    padding: 18px;
+    box-shadow: 0 8px 30px rgba(15,23,36,0.06);
+    border: 1px solid var(--line);
+  }
+
+  .controls h3 {
+    margin: 0 0 12px 0;
+    font-size: 16px;
+    color: var(--accent);
+  }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+
+  label {
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  input, textarea, select {
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: #fbfdff;
+    outline: none;
+    font-size: 14px;
+    color: var(--text);
+  }
+
+  textarea { resize: vertical; min-height: 72px; }
+
+  .btn {
+    display: inline-block;
+    width: 100%;
+    padding: 10px 12px;
+    font-weight: 600;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    margin-top: 8px;
+  }
+
+  .btn-primary { background: var(--accent); color: white; }
+
+  /* Receipt paper */
+  .paper {
+    width: var(--paper-width);
+    background: white;
+    border-radius: 12px;
+    padding: var(--receipt-padding);
+    box-shadow: 0 18px 42px rgba(11,20,34,0.09);
+    border: 1px solid var(--line);
+    font-size: 15px;
+  }
+
+  .paper header {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom: 16px;
+  }
+
+  .brand {
+    display:flex;
+    align-items:center;
+    gap:12px;
+  }
+
+  .logo {
+    width:56px;
+    height:56px;
+    display:grid;
+    place-items:center;
+    border-radius:10px;
+    background: var(--accent);
+    color:white;
+    font-weight:800;
+    font-size:18px;
+  }
+
+  .brand h1 {
+    margin:0;
+    font-size:20px;
+    color: var(--accent);
+  }
+
+  .meta {
+    text-align:right;
+    color:var(--muted);
+    font-size:13px;
+  }
+
+  .receipt-body {
+    border-top: 1px dashed var(--line);
+    border-bottom: 1px dashed var(--line);
+    padding: 16px 0;
+    margin: 12px 0;
+  }
+
+  .row {
+    display:flex;
+    justify-content:space-between;
+    margin-bottom:8px;
+  }
+
+  .label { color:var(--muted); font-size:13px; }
+  .value { font-weight:700; font-size:15px; }
+
+  .amount {
+    font-size:20px;
+    font-weight:900;
+    color:var(--accent);
+  }
+
+  footer {
+    display:flex;
+    justify-content:space-between;
+    margin-top:18px;
+    color:var(--muted);
+    font-size:13px;
+  }
+  footer img {
+  max-width: 120px;
+  height: auto;
+}
+.modal {
+  display: none; /* Hidden by default */
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-content {
+  background: white;
+  padding: 24px;
+  border-radius: 12px;
+  max-width: 360px;
+  text-align: center;
+  font-family: Inter, sans-serif;
+  color: #0f1724;
+}
+
+.modal-content p {
+  margin-bottom: 16px;
+}
+
+.modal-content .btn {
+  width: 100%;
+}
+
+</style>
+</head>
+<body>
+ <!-- Payment Modal -->
+<div id="paymentModal" class="modal" style="display:none; justify-content:center; align-items:center; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999;">
+  <div class="modal-content" style="background:#fff; padding:20px; border-radius:10px; max-width:400px; text-align:center; box-shadow:0 4px 20px rgba(0,0,0,0.3);">
+    
+    <h2 style="color:#d9534f;">🔒 Access Locked</h2>
+    <p style="font-weight:bold; color:#333;">Make your payment of ₦3,000 to get the password.</p>
+    
+    <hr style="margin:10px 0;">
+    <p><strong>Account Number:</strong> 9135624312</p>
+    <p><strong>Bank:</strong> OPay</p>
+    <p><strong>Name:</strong> Atoi</p>
+    <hr style="margin:15px 0;">
+    <p>
+      After payment, chat 
+      <a href="https://wa.me/2349135624312" target="_blank" style="color:#25D366; font-weight:bold; text-decoration:none;">
+        09135624312
+      </a> 
+      on WhatsApp to receive your password.
+    </p>
+    
+    
+    <p style="margin-top:15px;">Enter the password you received:</p>
+    <input type="password" id="paymentPassword" placeholder="Enter password" style="padding:8px; width:100%; margin-bottom:10px; border:1px solid #ccc; border-radius:5px;">
+    <button id="confirmPassword" class="btn btn-primary" style="padding:10px 15px; background:#28a745; color:#fff; border:none; border-radius:5px; cursor:pointer;">Confirm</button>
+  
+  </div>
+</div>
+  
+  <div class="wrap">
+    <!-- Controls -->
+    <aside class="controls">
+      <h3>Receipt Builder</h3>
+
+      <div class="field">
+        <label>Payer name</label>
+        <input id="payer" type="text" value="John Doe">
+      </div>
+
+      <div class="field">
+        <label>Payer account</label>
+        <input id="account" type="text" value="1234567890">
+      </div>
+
+      <div class="field">
+        <label>Receiver name</label>
+        <input id="receiver" type="text" value="Jane Smith">
+      </div>
+
+      <div class="field">
+        <label>Receiver account</label>
+        <input id="receiverAcc" type="text" value="0987654321">
+      </div>
+
+      <div class="field">
+        <label>Bank name</label>
+        <input id="bankName" type="text" value="Access Bank">
+      </div>
+      
+      <div class="field">
+        <label>Amount</label>
+        <input id="amount" type="number" min="0" step="0.01" value="5000.00">
+      </div>
+
+      <div class="field">
+        <label>Currency</label>
+        <select id="currency">
+          <option value="₦">₦ — NGN</option>
+          <option value="$">$ — USD</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Narration</label>
+        <textarea id="narration">Payment for services</textarea>
+      </div>
+
+      <button id="savePdf" class="btn btn-primary">Save as PDF</button>
+    </aside>
+
+    <!-- Receipt -->
+    <article class="paper" id="receipt">
+        <header>
+            <div class="brand">
+              <div class="logo">
+                <img src="smooth banking.JPG" alt="Smooth Banking Logo" style="width:100%;height:100%;object-fit:cover;border-radius:10px;">
+              </div>
+              <h1>Smooth Banking</h1>
+            </div>
+          </header>
+          
+        <div class="meta">
+          <div id="r_number">Transaction #: </div>
+          <div id="r_date"></div>
+        </div>
+      </header>
+
+      <section class="receipt-body">
+        <div class="row"><div class="label">Payer</div><div class="value" id="r_payer"></div></div>
+        <div class="row"><div class="label">Payer Account</div><div class="value" id="r_account"></div></div>
+        <div class="row"><div class="label">Receiver</div><div class="value" id="r_receiver"></div></div>
+        <div class="row">
+          <div class="label">Receiver Account</div>
+          <div class="value" id="r_receiverAcc"></div>
+        </div>
+        
+        <div class="row"><div class="label">Bank Name</div><div class="value" id="r_bankName"></div></div>
+        <div class="row"><div class="label">Amount</div><div class="amount" id="r_amount"></div></div>
+        <div class="row"><div class="label">Narration</div><div class="value" id="r_narration"></div></div>
+      </section>
+      
+
+      <footer>
+        <div>Processed by Smooth Banking</div>
+        <div style="text-align:center;">
+          <img src="SIGN-removebg-preview(3).png" alt="Signature" style="width:120px;height:auto;display:block;margin:0 auto;">
+          <div>Authorized Signature</div>
+        </div>
+      </footer>
+      
+    </article>
+    <!-- Add this div somewhere in your body -->
+<div id="passwordSuccess" style="
+display:none;
+position:fixed;
+top:20px;
+right:20px;
+background:#28a745;
+color:white;
+padding:15px 20px;
+border-radius:8px;
+box-shadow:0 4px 12px rgba(0,0,0,0.2);
+font-weight:bold;
+z-index:9999;
+">
+Password accepted. You can now access the site.
+</div>
+
+  </div>
+
+<!-- Add html2canvas for jsPDF to work -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const { jsPDF } = window.jspdf;
+
+  function formatCurrency(amount, symbol) {
+    return symbol + Number(amount).toLocaleString(undefined, { minimumFractionDigits: 2 });
+  }
+
+  function updateReceipt(transactionId) {
+    document.getElementById('r_payer').textContent = document.getElementById('payer').value;
+    document.getElementById('r_account').textContent = document.getElementById('account').value;
+    document.getElementById('r_receiver').textContent = document.getElementById('receiver').value;
+    document.getElementById('r_receiverAcc').textContent = document.getElementById('receiverAcc').value;
+
+    document.getElementById('r_bankName').textContent = document.getElementById('bankName').value;
+    document.getElementById('r_amount').textContent = formatCurrency(document.getElementById('amount').value, document.getElementById('currency').value);
+    document.getElementById('r_narration').textContent = document.getElementById('narration').value;
+
+    const now = new Date();
+    document.getElementById('r_date').textContent = now.toLocaleString();
+    document.getElementById('r_number').textContent = "Transaction #: " + transactionId;
+  }
+
+  function generateTransactionId() {
+    return 'SB' + Date.now().toString().slice(-8);
+  }
+
+  let initialPaymentDone = false;
+
+  // Show modal immediately on page load
+  window.addEventListener('load', function() {
+    document.getElementById('paymentModal').style.display = 'flex';
+  });
+
+  // Handle password check
+document.getElementById('confirmPassword').addEventListener('click', function() {
+  const password = document.getElementById('paymentPassword').value.trim();
+  const successBox = document.getElementById('passwordSuccess');
+
+  if (password === '78900') {
+    successBox.style.display = 'block';          // Show styled message
+    initialPaymentDone = true;
+    document.getElementById('paymentModal').style.display = 'none';
+
+    // Hide after 3 seconds
+    setTimeout(() => {
+      successBox.style.display = 'none';
+    }, 3000);
+  } else {
+    alert('Incorrect password. Please contact 09135624312 on WhatsApp for assistance.');
+  }
+});
+
+
+  // Prevent closing modal by clicking outside
+  const modal = document.getElementById('paymentModal');
+  modal.addEventListener('click', function(e) {
+    if (e.target === modal) {
+      // Prevent closing
+    }
+  });
+
+  // Save PDF function
+  function savePdfReceipt() {
+    if (!initialPaymentDone) {
+      alert("You must enter the password before saving the receipt.");
+      return;
+    }
+    const { jsPDF } = window.jspdf;
+    const transactionId = 'SB' + Date.now().toString().slice(-8);
+    updateReceipt(transactionId);
+    const doc = new jsPDF('p', 'pt', 'a4');
+    doc.html(document.getElementById('receipt'), {
+      callback: function(pdf) {
+        pdf.save(`SmoothBanking_${transactionId}.pdf`);
+      },
+      margin: [20,20,20,20],
+      autoPaging: 'text',
+      x: 0,
+      y: 0,
+      width: 550,
+      windowWidth: document.getElementById('receipt').scrollWidth
+    });
+  }
+
+  document.getElementById('savePdf').addEventListener('click', savePdfReceipt);
+})
+</script>
+</body>
+</html>
