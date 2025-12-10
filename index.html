@@ -205,6 +205,23 @@
 .modal-content .btn {
   width: 100%;
 }
+#receipt {
+  width: 100%;
+  max-width: 800px;
+  overflow: visible !important;
+  background: white;
+}
+
+@media (max-width: 768px) {
+  body {
+    align-items: flex-start;
+    padding: 16px;
+  }
+  .paper {
+    width: 100%;
+    max-width: 100%;
+  }
+}
 
 </style>
 </head>
@@ -415,23 +432,43 @@ document.getElementById('confirmPassword').addEventListener('click', function() 
   });
 
   // Save PDF function
-  function savePdfReceipt() {
-    if (!initialPaymentDone) {
-      alert("You must enter the password before saving the receipt.");
-      return;
-    }
-    const doc = new jsPDF('p', 'pt', 'a4');
-doc.html(document.getElementById('receipt'), {
-  callback: function (pdf) {
-    pdf.save(`SmoothBanking_${transactionId}.pdf`);
-  },
-  margin: [20, 20, 20, 20],
-  html2canvas: {
-    scale: 2,  // higher scale = sharper, captures full content
-    useCORS: true,
-    windowWidth: 1200 // <— important for mobile
-  },
-});
+ function savePdfReceipt() {
+  if (!initialPaymentDone) {
+    alert("You must enter the password before saving the receipt.");
+    return;
+  }
+
+  const { jsPDF } = window.jspdf;
+  const transactionId = 'SB' + Date.now().toString().slice(-8);
+  updateReceipt(transactionId);
+
+  // Detect mobile screens
+  const isMobile = window.innerWidth < 768;
+  const receiptElement = document.getElementById('receipt');
+
+  // Fix rendering issues by setting explicit dimensions before capture
+  receiptElement.style.maxWidth = '800px';
+  receiptElement.style.overflow = 'visible';
+
+  const doc = new jsPDF('p', 'pt', 'a4');
+  doc.html(receiptElement, {
+    callback: function (pdf) {
+      pdf.save(`SmoothBanking_${transactionId}.pdf`);
+    },
+    margin: [20, 20, 20, 20],
+    autoPaging: 'text',
+    html2canvas: {
+      scale: isMobile ? 3 : 2,      // make it sharper on mobile
+      useCORS: true,
+      scrollY: 0,
+      windowWidth: 1200,           // force full layout width
+      windowHeight: receiptElement.scrollHeight, // capture full height
+    },
+    x: 0,
+    y: 0,
+    width: 500
+  });
+}
 
    
   }
@@ -441,5 +478,6 @@ doc.html(document.getElementById('receipt'), {
 </script>
 </body>
 </html>
+
 
 
